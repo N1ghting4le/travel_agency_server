@@ -1,5 +1,7 @@
 const format = require("pg-format"),
     jwt = require("jsonwebtoken"),
+    crypto = require('crypto'),
+    util = require('util'),
     Controller = require("./base.controller");
 
 class AuthController extends Controller {
@@ -18,6 +20,19 @@ class AuthController extends Controller {
         return jwt.sign(email, process.env.TOKEN_SECRET, { expiresIn: "3600s" });
     }
 
+    static async scryptHash(string, salt) {
+        const saltInUse = salt || crypto.randomBytes(16).toString('hex'),
+            hashBuffer = await util.promisify(crypto.scrypt)(string, saltInUse, 32);
+
+        return `${hashBuffer.toString('hex')}:${saltInUse}`;
+    }
+    
+    static async scryptVerify(testString, hashAndSalt) {
+        const [, salt] = hashAndSalt.split(':');
+
+        return await AuthController.scryptHash(testString, salt) === hashAndSalt; 
+    }
+
     static signUp(req, res) {
         const { email } = req.body;
 
@@ -27,7 +42,7 @@ class AuthController extends Controller {
 
         const query = format(`SELECT 1 FROM "User" WHERE email=%L`, email);
 
-        super.pool.query(query, (err, response) => {
+        super.pool.query(query, async (err, response) => {
             if (err) return super.error(err, res);
 
             if (response.rowCount) {
@@ -35,17 +50,20 @@ class AuthController extends Controller {
             }
 
             const token = AuthController.generateAccessToken({ email }),
-                query = format(`INSERT INTO "User" VALUES (%L)`, AuthController.createUser(req.body));
+                password = await AuthController.scryptHash(req.body.password),
+                query = format(
+                    `INSERT INTO "User" VALUES (%L)`, AuthController.createUser({...req.body, password})
+                );
 
             super.manipulateQuery(query, res, token);
         });
     }
 
-    static signIn(req, res) {
+    static async signIn(req, res) {
         const { email, password } = req.body;
 
         if (email === process.env.ADMIN_EMAIL) {
-            if (password !== process.env.ADMIN_PASSWORD) {
+            if (!await AuthController.scryptVerify(password, process.env.ADMIN_PASSWORD)) {
                 return super.sendError(res, 403, AuthController.accessDeniedMsg);
             }
 
@@ -56,16 +74,16 @@ class AuthController extends Controller {
 
         const query = format(`SELECT * FROM "User" WHERE email=%L`, email);
 
-        super.pool.query(query, (err, response) => {
+        super.pool.query(query, async (err, response) => {
             if (err) return super.error(err, res);
 
             if (response.rowCount === 0) {
                 return super.sendError(res, 401, AuthController.userNotExistMsg);
             }
 
-            const { password: userPassword, phone_number, ...user } = response.rows[0];
+            const { password: passwordAndSalt, phone_number, ...user } = response.rows[0];
 
-            if (password !== userPassword) {
+            if (!await AuthController.scryptVerify(password, passwordAndSalt)) {
                 return super.sendError(res, 403, AuthController.wrongPasswordMsg);
             }
 
