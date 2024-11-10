@@ -5,93 +5,95 @@ const format = require("pg-format"),
     Controller = require("./base.controller");
 
 class AuthController extends Controller {
-    static userExistsMsg = "Пользователь с таким адресом эл. почты уже существует";
-    static accessDeniedMsg = "Доступ запрещён";
-    static userNotExistMsg = "Пользователя с таким адресом эл. почты не существует";
-    static wrongPasswordMsg = "Неверный пароль";
+    userExistsMsg = "Пользователь с таким адресом эл. почты уже существует";
+    accessDeniedMsg = "Доступ запрещён";
+    userNotExistMsg = "Пользователя с таким адресом эл. почты не существует";
+    wrongPasswordMsg = "Неверный пароль";
 
-    static createUser(body) {
+    createUser(body) {
         const { id, name, surname, email, phoneNumber, password } = body;
 
         return [id, email, password, name, surname, phoneNumber];
     }
 
-    static generateAccessToken(email) {
+    generateAccessToken(email) {
         return jwt.sign(email, process.env.TOKEN_SECRET, { expiresIn: "3600s" });
     }
 
-    static async scryptHash(string, salt) {
+    async scryptHash(string, salt) {
         const saltInUse = salt || crypto.randomBytes(16).toString('hex'),
             hashBuffer = await util.promisify(crypto.scrypt)(string, saltInUse, 32);
 
         return `${hashBuffer.toString('hex')}:${saltInUse}`;
     }
     
-    static async scryptVerify(testString, hashAndSalt) {
+    async scryptVerify(testString, hashAndSalt) {
         const [, salt] = hashAndSalt.split(':');
 
-        return await AuthController.scryptHash(testString, salt) === hashAndSalt; 
+        return await this.scryptHash(testString, salt) === hashAndSalt; 
     }
 
-    static signUp(req, res) {
+    signUp(req, res) {
         const { email } = req.body;
 
         if (email === process.env.ADMIN_EMAIL) {
-            return super.sendError(res, 409, AuthController.userExistsMsg);
+            return this.sendError(res, 409, this.userExistsMsg);
         }
 
         const query = format(`SELECT 1 FROM "User" WHERE email=%L`, email);
 
-        super.pool.query(query, async (err, response) => {
-            if (err) return super.error(err, res);
+        this.pool.query(query, async (err, response) => {
+            if (err) return this.error(err, res);
 
             if (response.rowCount) {
-                return super.sendError(res, 409, AuthController.userExistsMsg);
+                return this.sendError(res, 409, this.userExistsMsg);
             }
 
-            const token = AuthController.generateAccessToken({ email }),
-                password = await AuthController.scryptHash(req.body.password),
+            const token = this.generateAccessToken({ email }),
+                password = await this.scryptHash(req.body.password),
                 query = format(
-                    `INSERT INTO "User" VALUES (%L)`, AuthController.createUser({...req.body, password})
+                    `INSERT INTO "User" VALUES (%L)`, this.createUser({...req.body, password})
                 );
 
-            super.manipulateQuery(query, res, token);
+            this.manipulateQuery(query, res, token);
         });
     }
 
-    static async signIn(req, res) {
+    async signIn(req, res) {
         const { email, password } = req.body;
 
         if (email === process.env.ADMIN_EMAIL) {
-            if (!await AuthController.scryptVerify(password, process.env.ADMIN_PASSWORD)) {
-                return super.sendError(res, 403, AuthController.accessDeniedMsg);
+            if (!await this.scryptVerify(password, process.env.ADMIN_PASSWORD)) {
+                return this.sendError(res, 403, this.accessDeniedMsg);
             }
 
-            const token = AuthController.generateAccessToken({ email });
+            const token = this.generateAccessToken({ email });
 
             return res.send({ admin: true, token });
         }
 
         const query = format(`SELECT * FROM "User" WHERE email=%L`, email);
 
-        super.pool.query(query, async (err, response) => {
-            if (err) return super.error(err, res);
+        this.pool.query(query, async (err, response) => {
+            if (err) return this.error(err, res);
 
             if (response.rowCount === 0) {
-                return super.sendError(res, 401, AuthController.userNotExistMsg);
+                return this.sendError(res, 401, this.userNotExistMsg);
             }
 
             const { password: passwordAndSalt, phone_number, ...user } = response.rows[0];
 
-            if (!await AuthController.scryptVerify(password, passwordAndSalt)) {
-                return super.sendError(res, 403, AuthController.wrongPasswordMsg);
+            if (!await this.scryptVerify(password, passwordAndSalt)) {
+                return this.sendError(res, 403, this.wrongPasswordMsg);
             }
 
-            const token = AuthController.generateAccessToken({ email });
+            const token = this.generateAccessToken({ email });
 
             res.send({ ...user, phoneNumber: phone_number, token });
         });
     }
 }
 
-module.exports = AuthController;
+const authController = new AuthController();
+
+module.exports = authController;

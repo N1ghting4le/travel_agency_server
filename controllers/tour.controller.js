@@ -2,7 +2,7 @@ const format = require("pg-format"),
     Controller = require("./base.controller");
 
 class TourController extends Controller {
-    static createTour(body) {
+    createTour(body) {
         const { 
             id, hotelId, basePrice, destinationCountry, departureCity, descr, title, notes
         } = body;
@@ -12,7 +12,7 @@ class TourController extends Controller {
         ];
     }
 
-    static getToursByParams(req, res) {
+    getToursByParams(req, res) {
         const { departureCity, destinationCountry, rooms, nutrition } = req.body;
 
         const query = format(`
@@ -25,8 +25,8 @@ class TourController extends Controller {
             stars, nutrition_types, room_types, photos ORDER BY base_price ASC
         `, destinationCountry, departureCity);
 
-        super.pool.query(query, (err, response) => {
-            if (err) return super.error(err, res);
+        this.pool.query(query, (err, response) => {
+            if (err) return this.error(err, res);
 
             res.send(response.rows.filter(item => 
                 (!nutrition.length || item.nutrition_types.some(type => nutrition.includes(type)))
@@ -35,7 +35,7 @@ class TourController extends Controller {
         });
     }
 
-    static getTourById(req, res) {
+    getTourById(req, res) {
         const query = format(`
             SELECT "Tour".id AS id, "Hotel".id AS hotel_id, departure_city, destination_country, tour_title,
             tour_descr, tour_notes, hotel_title, resort, address, hotel_descr, stars, hotel_notes, base_price,
@@ -44,43 +44,47 @@ class TourController extends Controller {
             LEFT JOIN "Hotel" ON "Tour".hotel_id="Hotel".id WHERE "Tour".id=%L
         `, req.params.id);
 
-        super.pool.query(query, (err, response) => {
-            if (err) return super.error(err, res);
+        this.pool.query(query, (err, response) => {
+            if (err) return this.error(err, res);
             
             res.send(response.rows[0]);
         });
     }
 
-    static addTour(req, res) {
-        if (!super.isAdmin(req.user)) return res.sendStatus(403);
+    addTour(req, res) {
+        if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
-        const query = format(`INSERT INTO "Tour" VALUES (%L)`, TourController.createTour(req.body));
+        const query = format(`INSERT INTO "Tour" VALUES (%L)`, this.createTour(req.body));
 
-        super.manipulateQuery(query, res);
+        this.manipulateQuery(query, res);
     }
 
-    static editTour(req, res) {
-        if (!super.isAdmin(req.user)) return res.sendStatus(403);
+    editTour(req, res) {
+        if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
-        const query = format(`
-            DELETE FROM "Tour" WHERE id=%L;
-            INSERT INTO "Tour" VALUES (%L)
-        `, req.params.id, TourController.createTour(req.body));
+        const [, ...updatedColumns] = this.createTour(req.body), query = format(`
+            UPDATE "Tour" SET hotel_id=%L, departure_city=%L, destination_country=%L,
+            base_price=%L, tour_title=%L, tour_descr=%L, tour_notes=%L WHERE id=%L
+        `, ...updatedColumns, req.params.id);
 
-        super.pool.query(query, (err) => {
-            if (err) return super.error(err, res);
+        this.pool.query(query, (err) => {
+            if (err) return this.error(err, res);
 
-            TourController.getTourById(req, res);
+            this.getTourById(req, res);
         });
     }
 
-    static deleteTour(req, res) {
-        if (!super.isAdmin(req.user)) return res.sendStatus(403);
+    deleteTour(req, res) {
+        if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
-        const query = format(`DELETE FROM "Tour" WHERE id=%L`, req.params.id);
+        const query = format(`
+            DELETE FROM "Review" WHERE tour_id=%L; DELETE FROM "Booking" WHERE tour_id=%L;
+            DELETE FROM "Tour" WHERE id=%L`, ...Array(3).fill(req.params.id));
 
-        super.manipulateQuery(query, res);
+        this.manipulateQuery(query, res);
     }
 }
 
-module.exports = TourController;
+const tourController = new TourController();
+
+module.exports = tourController;

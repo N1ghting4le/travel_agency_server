@@ -1,13 +1,13 @@
 const express = require("express"),
     authenticateToken = require("../middleware"),
-    TourController = require("../controllers/tour.controller");
+    tourController = require("../controllers/tour.controller");
 
 const router = express.Router();
 
-router.post("/getTours", TourController.getToursByParams);
-router.get("/get/:id", TourController.getTourById);
-router.post("/add", authenticateToken, TourController.addTour);
-router.patch("/edit/:id", authenticateToken, TourController.editTour);
-router.delete("/delete/:id", authenticateToken, TourController.deleteTour);
+router.post("/getTours", (req, res) => tourController.getToursByParams(req, res));
+router.get("/get/:id", (req, res) => tourController.getTourById(req, res));
+router.post("/add", authenticateToken, (req, res) => tourController.addTour(req, res));
+router.patch("/edit/:id", authenticateToken, (req, res) => tourController.editTour(req, res));
+router.delete("/delete/:id", authenticateToken, (req, res) => tourController.deleteTour(req, res));
 
 module.exports = router;

@@ -2,7 +2,7 @@ const format = require("pg-format"),
     Controller = require("./base.controller");
 
 class BookingController extends Controller {
-    static createBooking(body) {
+    createBooking(body) {
         const { 
             id, userId, tourId, roomType, nutrType, startDate, endDate,
             bookingDate, totalPrice, adultsAmount, childrenAmount
@@ -14,17 +14,15 @@ class BookingController extends Controller {
         ];
     }
 
-    static addBooking(req, res) {
-        if (super.isAdmin(req.user)) return res.sendStatus(403);
+    addBooking(req, res) {
+        if (this.isAdmin(req.user)) return res.sendStatus(403);
 
-        const query = format(
-            `INSERT INTO "Booking" VALUES (%L)`, BookingController.createBooking(req.body)
-        );
+        const query = format(`INSERT INTO "Booking" VALUES (%L)`, this.createBooking(req.body));
 
-        super.manipulateQuery(query, res);
+        this.manipulateQuery(query, res);
     }
 
-    static getUserBookings(req, res) {
+    getUserBookings(req, res) {
         const query = format(`
             SELECT "Booking".id AS id, tour_id, room_type, nutrition_type, adults_amount,
             children_amount, to_json(start_date) AS start_date, to_json(end_date) AS end_date, 
@@ -34,12 +32,14 @@ class BookingController extends Controller {
             ORDER BY CAST(booking_date AS date) ASC
         `, req.params.id);
 
-        super.pool.query(query, (err, response) => {
-            if (err) return super.error(err, res);
+        this.pool.query(query, (err, response) => {
+            if (err) return this.error(err, res);
 
             res.send(response.rows);
         });
     }
 }
 
-module.exports = BookingController;
+const bookingController = new BookingController();
+
+module.exports = bookingController;

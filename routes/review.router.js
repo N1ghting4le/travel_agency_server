@@ -1,11 +1,11 @@
 const express = require("express"),
     authenticateToken = require("../middleware"),
-    ReviewController = require("../controllers/review.controller");
+    reviewController = require("../controllers/review.controller");
 
 const router = express.Router();
 
-router.get("/get/:id", ReviewController.getTourReviews);
-router.post("/add", authenticateToken, ReviewController.addReview);
-router.patch("/edit", authenticateToken, ReviewController.editReview);
+router.get("/get/:id", (req, res) => reviewController.getTourReviews(req, res));
+router.post("/add", authenticateToken, (req, res) => reviewController.addReview(req, res));
+router.patch("/edit", authenticateToken, (req, res) => reviewController.editReview(req, res));
 
 module.exports = router;
