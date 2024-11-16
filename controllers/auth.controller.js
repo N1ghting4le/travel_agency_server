@@ -92,6 +92,20 @@ class AuthController extends Controller {
             res.send({ ...user, phoneNumber: phone_number, token });
         });
     }
+
+    authorize(req, res) {
+        if (this.isAdmin(req.user)) return res.send({ admin: true });
+
+        const query = format(`SELECT * FROM "User" WHERE email=%L`, req.user.email);
+
+        this.pool.query(query, (err, response) => {
+            if (err) return this.error(err, res);
+
+            const { password, phone_number, ...user } = response.rows[0];
+
+            res.send({ ...user, phoneNumber: phone_number });
+        });
+    }
 }
 
 const authController = new AuthController();
