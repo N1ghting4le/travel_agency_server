@@ -1,19 +1,18 @@
 const express = require("express"),
-    authenticateToken = require("../middleware"),
-    validate = require("../validationMiddleware"),
+    authenticateToken = require("../middleware/JWTmiddleware"),
+    validate = require("../middleware/validationMiddleware"),
+    { idSchema, stringSchema } = require("../validationSchemas"),
     { checkSchema } = require("express-validator"),
     authController = require("../controllers/auth.controller");
 
 const router = express.Router();
-const basicSchema = {
+const baseSchema = {
     email: {
-        trim: true,
-        isEmpty: { errorMessage: "Email is required", negated: true, bail: true },
-        isEmail: { errorMessage: "Must be a valid e-mail address", bail: true }
+        ...stringSchema("Email"),
+        isEmail: { errorMessage: "Must be a valid email address", bail: true }
     },
     password: {
-        trim: true,
-        isEmpty: { errorMessage: "Password is required", negated: true, bail: true },
+        ...stringSchema("Password"),
         isLength: {
             errorMessage: "Passowrd length must be between 4 and 20 characters",
             options: { min: 4, max: 20 },
@@ -22,26 +21,16 @@ const basicSchema = {
     }
 };
 
-router.post("/signIn", checkSchema(basicSchema), validate, (req, res) => authController.signIn(req, res));
+router.post("/signIn", checkSchema(baseSchema), validate, (req, res) => authController.signIn(req, res));
 router.post(
     "/signUp",
     checkSchema({
-        id: {
-            isEmpty: { errorMessage: "GUID is required", negated: true, bail: true },
-            isUUID: { errorMessage: "Must be a valid GUID", bail: true }
-        },
-        ...basicSchema,
-        name: {
-            trim: true,
-            isEmpty: { errorMessage: "Name is required", negated: true, bail: true }
-        },
-        surname: {
-            trim: true,
-            isEmpty: { errorMessage: "Surname is required", negated: true, bail: true }
-        },
+        id: idSchema("User id"),
+        ...baseSchema,
+        name: stringSchema("Name"),
+        surname: stringSchema("Surname"),
         phoneNumber: {
-            trim: true,
-            isEmpty: { errorMessage: "Phone number is required", negated: true, bail: true },
+            ...stringSchema("Phone number"),
             isMobilePhone: { errorMessage: "Must be a valid phone number", bail: true }
         }
     }),

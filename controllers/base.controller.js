@@ -8,7 +8,7 @@ class Controller {
     }
 
     sendError(res, status = 500, message = "Error executing query") {
-        res.status(status).json(message);
+        res.status(status).send({ error: message });
     }
 
     error(err, res) {
