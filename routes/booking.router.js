@@ -12,7 +12,6 @@ router.post(
     authenticateToken,
     checkSchema({
         id: idSchema("Booking id"),
-        userId: idSchema("User id"),
         tourId: idSchema("Tour id"),
         roomType: stringSchema("Room type"),
         nutrType: stringSchema("Nutrition type"),

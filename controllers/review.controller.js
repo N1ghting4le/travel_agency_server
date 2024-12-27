@@ -8,36 +8,54 @@ class ReviewController extends Controller {
         return [id, user_id, tour_id, review_date, mark, review_text];
     }
 
-    getTourReviews(req, res) {
+    async getTourReviews(req, res) {
         const query = format(`
             SELECT "Review".id AS id, name, surname, mark, review_text, user_id FROM "Review"
             LEFT JOIN "User" ON "Review".user_id="User".id
             WHERE tour_id=%L ORDER BY review_date DESC
         `, req.params.id);
 
-        this.pool.query(query, (err, response) => {
-            if (err) return this.error(err, res);
+        try {
+            const response = await this.pool.query(query);
 
             res.send(response.rows);
-        });
+        } catch (e) {
+            this.error(e, res);
+        }
     }
     
-    addReview(req, res) {
+    async addReview(req, res) {
         if (this.isAdmin(req.user)) return res.sendStatus(403);
 
-        const query = format(`INSERT INTO "Review" VALUES (%L)`, this.createReview(req.body));
+        const query = format(`
+            SELECT review_date FROM "Review" WHERE user_id=%L ORDER BY review_date DESC LIMIT 1
+        `, req.user.id);
 
-        this.manipulateQuery(query, res);
+        try {
+            const lastDate = (await this.pool.query(query)).rows[0]?.review_date;
+
+            if (lastDate && new Date() - new Date(lastDate) < 1000 * 60 * 60 * 24) {
+                return this.sendError(res, 409, "За сутки можно оставить только 1 отзыв");
+            }
+            
+            const insertQuery = format(`
+                INSERT INTO "Review" VALUES (%L)
+            `, this.createReview({...req.body, user_id: req.user.id}));
+    
+            this.manipulateQuery(insertQuery, res);
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 
     editReview(req, res) {
-        const { id, user_id, review_user_id, review_text, mark } = req.body;
+        const { id, review_user_id, review_text, mark } = req.body;
 
-        if (!this.isAdmin(req.user) && user_id !== review_user_id) return res.sendStatus(403);
+        if (!this.isAdmin(req.user) && req.user.id !== review_user_id) return res.sendStatus(403);
 
-        const query = format(
-            `UPDATE "Review" SET review_text=%L, mark=%L WHERE id=%L`, review_text, mark, id
-        );
+        const query = format(`
+            UPDATE "Review" SET review_text=%L, mark=%L WHERE id=%L
+        `, review_text, mark, id);
 
         this.manipulateQuery(query, res);
     }

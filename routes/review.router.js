@@ -24,7 +24,6 @@ router.post(
     authenticateToken,
     checkSchema({
         ...baseSchema,
-        user_id: idSchema("User id"),
         tour_id: idSchema("Tour id"),
         review_date: dateSchema("Review date"),
     }),

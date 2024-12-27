@@ -3,7 +3,7 @@ const format = require("pg-format"),
 
 class BookingController extends Controller {
     createBooking(body) {
-        const { 
+        const {
             id, userId, tourId, roomType, nutrType, startDate, endDate,
             bookingDate, totalPrice, adultsAmount, childrenAmount
         } = body;
@@ -14,15 +14,43 @@ class BookingController extends Controller {
         ];
     }
 
-    addBooking(req, res) {
+    async addBooking(req, res) {
         if (this.isAdmin(req.user)) return res.sendStatus(403);
 
-        const query = format(`INSERT INTO "Booking" VALUES (%L)`, this.createBooking(req.body));
+        const { startDate, endDate } = req.body;
+        const checkTourQuery = format(`SELECT delete FROM "Tour" WHERE id=%L`, req.body.tourId);
 
-        this.manipulateQuery(query, res);
+        try {
+            const response = await this.pool.query(checkTourQuery);
+
+            if (response.rows[0].delete) {
+                return this.sendError(res, 409, "Данный тур больше не доступен");
+            }
+
+            const checkDatesQuery = format(`
+                SELECT 1 FROM "Booking" WHERE user_id=%L AND start_date<=%L AND end_date>=%L
+            `, req.user.id, endDate, startDate);
+
+            const dateResponse = await this.pool.query(checkDatesQuery);
+
+            if (dateResponse.rowCount) {
+                return this.sendError(res, 409, "У вас есть забронированный тур на эти даты");
+            }
+
+            const query = format(`
+                INSERT INTO "Booking" VALUES (%L)
+            `, this.createBooking({...req.body, userId: req.user.id}));
+    
+            this.manipulateQuery(query, res);
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 
-    getUserBookings(req, res) {
+    async getUserBookings(req, res) {
+        const deleteQuery = format(`
+            DELETE FROM "Booking" WHERE user_id=%L AND start_date < CURRENT_DATE
+        `, req.params.id);
         const query = format(`
             SELECT "Booking".id AS id, tour_id, room_type, nutrition_type, adults_amount,
             children_amount, to_json(start_date) AS start_date, to_json(end_date) AS end_date, 
@@ -32,11 +60,15 @@ class BookingController extends Controller {
             ORDER BY CAST(booking_date AS date) ASC
         `, req.params.id);
 
-        this.pool.query(query, (err, response) => {
-            if (err) return this.error(err, res);
+        try {
+            await this.pool.query(deleteQuery);
+
+            const response = await this.pool.query(query);
 
             res.send(response.rows);
-        });
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 }
 

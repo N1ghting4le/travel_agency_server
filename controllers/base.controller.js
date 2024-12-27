@@ -16,12 +16,14 @@ class Controller {
         this.sendError(res);
     }
     
-    manipulateQuery(query, res, message = "Success") {
-        this.pool.query(query, (err) => {
-            if (err) this.error(err, res);
+    async manipulateQuery(query, res, message = "Success") {
+        try {
+            await this.pool.query(query);
             
             res.json(message);
-        });
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 
     isAdmin(user) {

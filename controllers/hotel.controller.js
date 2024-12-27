@@ -23,28 +23,32 @@ class HotelController extends Controller {
         this.manipulateQuery(query, res);
     }
 
-    getHotelsByCountry(req, res) {
+    async getHotelsByCountry(req, res) {
         const query = format(
             `SELECT id, hotel_title FROM "Hotel" WHERE hotel_country=%L`, req.params.country
         );
 
-        this.pool.query(query, (err, response) => {
-            if (err) return this.error(err, res);
+        try {
+            const response = await this.pool.query(query);
 
             res.send(response.rows);
-        });
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 
-    getHotelById(req, res) {
-        const query = format(
-            `SELECT row_to_json(t) "Hotel" FROM (SELECT * FROM "Hotel" WHERE id=%L) t`, req.params.id
-        );
+    async getHotelById(req, res) {
+        const query = format(`
+            SELECT row_to_json(t) "Hotel" FROM (SELECT * FROM "Hotel" WHERE id=%L) t
+        `, req.params.id);
 
-        this.pool.query(query, (err, response) => {
-            if (err) return this.error(err, res);
+        try {
+            const response = await this.pool.query(query);
 
-            res.send({ ...response.rows[0].Hotel });
-        });
+            res.send(response.rows[0].Hotel);
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 }
 

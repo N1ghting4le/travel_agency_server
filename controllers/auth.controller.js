@@ -16,8 +16,8 @@ class AuthController extends Controller {
         return [id, email, password, name, surname, phoneNumber];
     }
 
-    generateAccessToken(email) {
-        return jwt.sign(email, process.env.TOKEN_SECRET, { expiresIn: "3600s" });
+    generateAccessToken(data) {
+        return jwt.sign(data, process.env.TOKEN_SECRET, { expiresIn: "3600s" });
     }
 
     async scryptHash(string, salt) {
@@ -33,8 +33,8 @@ class AuthController extends Controller {
         return await this.scryptHash(testString, salt) === hashAndSalt; 
     }
 
-    signUp(req, res) {
-        const { email } = req.body;
+    async signUp(req, res) {
+        const { id, email } = req.body;
 
         if (email === process.env.ADMIN_EMAIL) {
             return this.sendError(res, 409, this.userExistsMsg);
@@ -42,21 +42,23 @@ class AuthController extends Controller {
 
         const query = format(`SELECT 1 FROM "User" WHERE email=%L`, email);
 
-        this.pool.query(query, async (err, response) => {
-            if (err) return this.error(err, res);
+        try {
+            const response = await this.pool.query(query);
 
             if (response.rowCount) {
                 return this.sendError(res, 409, this.userExistsMsg);
             }
 
-            const token = this.generateAccessToken({ email }),
+            const token = this.generateAccessToken({ email, id }),
                 password = await this.scryptHash(req.body.password),
-                query = format(
-                    `INSERT INTO "User" VALUES (%L)`, this.createUser({...req.body, password})
-                );
+                insertQuery = format(`
+                    INSERT INTO "User" VALUES (%L)
+                `, this.createUser({...req.body, password}));
 
-            this.manipulateQuery(query, res, token);
-        });
+            this.manipulateQuery(insertQuery, res, token);
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 
     async signIn(req, res) {
@@ -74,8 +76,8 @@ class AuthController extends Controller {
 
         const query = format(`SELECT * FROM "User" WHERE email=%L`, email);
 
-        this.pool.query(query, async (err, response) => {
-            if (err) return this.error(err, res);
+        try {
+            const response = await this.pool.query(query);
 
             if (response.rowCount === 0) {
                 return this.sendError(res, 401, this.userNotExistMsg);
@@ -87,24 +89,27 @@ class AuthController extends Controller {
                 return this.sendError(res, 403, this.wrongPasswordMsg);
             }
 
-            const token = this.generateAccessToken({ email });
+            const token = this.generateAccessToken({ email, id: user.id });
 
             res.send({ ...user, phoneNumber: phone_number, token });
-        });
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 
-    authorize(req, res) {
+    async authorize(req, res) {
         if (this.isAdmin(req.user)) return res.send({ admin: true });
 
         const query = format(`SELECT * FROM "User" WHERE email=%L`, req.user.email);
 
-        this.pool.query(query, (err, response) => {
-            if (err) return this.error(err, res);
-
+        try {
+            const response = await this.pool.query(query);
             const { password, phone_number, ...user } = response.rows[0];
 
             res.send({ ...user, phoneNumber: phone_number });
-        });
+        } catch (e) {
+            this.error(e, res);
+        }
     }
 }
 
