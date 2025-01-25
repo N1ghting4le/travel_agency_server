@@ -21,7 +21,6 @@ const baseSchema = {
     }
 };
 
-router.post("/signIn", checkSchema(baseSchema), validate, (req, res) => authController.signIn(req, res));
 router.post(
     "/signUp",
     checkSchema({
@@ -35,7 +34,10 @@ router.post(
         }
     }),
     validate,
-    (req, res) => authController.signUp(req, res));
+    (req, res) => authController.signUp(req, res)
+);
+
+router.post("/signIn", checkSchema(baseSchema), validate, (req, res) => authController.signIn(req, res));
 router.get("/", authenticateToken, (req, res) => authController.authorize(req, res));
 
 module.exports = router;

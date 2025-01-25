@@ -23,13 +23,16 @@ router.post(
         childrenAmount: intSchema("Amount of children", "must be non-negative integer", { min: 0 })
     }),
     validate,
-    (req, res) => bookingController.addBooking(req, res));
+    (req, res) => bookingController.addBooking(req, res)
+);
+
 router.get(
     "/get/:id",
     checkSchema({
         id: idSchema("User id")
     }),
     validate,
-    (req, res) => bookingController.getUserBookings(req, res));
+    (req, res) => bookingController.getUserBookings(req, res)
+);
 
 module.exports = router;

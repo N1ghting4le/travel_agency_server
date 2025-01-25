@@ -2,7 +2,9 @@ const format = require("pg-format"),
     Controller = require("./base.controller");
 
 class ReviewController extends Controller {
-    createReview(body) {
+    static #reviewLimitMsg = "За сутки можно оставить только 1 отзыв";
+
+    #createReview(body) {
         const { id, user_id, tour_id, review_date, mark, review_text } = body;
 
         return [id, user_id, tour_id, review_date, mark, review_text];
@@ -10,9 +12,8 @@ class ReviewController extends Controller {
 
     async getTourReviews(req, res) {
         const query = format(`
-            SELECT "Review".id AS id, name, surname, mark, review_text, user_id FROM "Review"
-            LEFT JOIN "User" ON "Review".user_id="User".id
-            WHERE tour_id=%L ORDER BY review_date DESC
+            SELECT r.id AS id, name, surname, mark, review_text, user_id FROM "Review" r
+            LEFT JOIN "User" u ON r.user_id=u.id WHERE tour_id = %L ORDER BY review_date DESC
         `, req.params.id);
 
         try {
@@ -28,19 +29,19 @@ class ReviewController extends Controller {
         if (this.isAdmin(req.user)) return res.sendStatus(403);
 
         const query = format(`
-            SELECT review_date FROM "Review" WHERE user_id=%L ORDER BY review_date DESC LIMIT 1
+            SELECT review_date FROM "Review" WHERE user_id = %L ORDER BY review_date DESC LIMIT 1
         `, req.user.id);
 
         try {
             const lastDate = (await this.pool.query(query)).rows[0]?.review_date;
 
             if (lastDate && new Date() - new Date(lastDate) < 1000 * 60 * 60 * 24) {
-                return this.sendError(res, 409, "За сутки можно оставить только 1 отзыв");
+                return this.sendError(res, 409, ReviewController.#reviewLimitMsg);
             }
             
             const insertQuery = format(`
                 INSERT INTO "Review" VALUES (%L)
-            `, this.createReview({...req.body, user_id: req.user.id}));
+            `, this.#createReview({ ...req.body, user_id: req.user.id }));
     
             this.manipulateQuery(insertQuery, res);
         } catch (e) {

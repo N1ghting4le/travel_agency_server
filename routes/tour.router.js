@@ -22,14 +22,18 @@ router.post(
         "nutrition.*": stringSchema("Nutrition item")
     }),
     validate,
-    (req, res) => tourController.getToursByParams(req, res));
+    (req, res) => tourController.getToursByParams(req, res)
+);
+
 router.get(
     "/get/:id",
     checkSchema({
         id: idSchema("Tour id")
     }),
     validate,
-    (req, res) => tourController.getTourById(req, res));
+    (req, res) => tourController.getTourById(req, res)
+);
+
 router.post("/add", authenticateToken, (req, res) => tourController.addTour(req, res));
 router.patch("/edit/:id", authenticateToken, (req, res) => tourController.editTour(req, res));
 router.delete("/delete/:id", authenticateToken, (req, res) => tourController.deleteTour(req, res));

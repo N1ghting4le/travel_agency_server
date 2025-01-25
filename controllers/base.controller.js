@@ -8,7 +8,7 @@ class Controller {
     }
 
     sendError(res, status = 500, message = "Error executing query") {
-        res.status(status).send({ error: message });
+        res.status(status).send(message);
     }
 
     error(err, res) {
@@ -20,7 +20,7 @@ class Controller {
         try {
             await this.pool.query(query);
             
-            res.json(message);
+            res.send(message);
         } catch (e) {
             this.error(e, res);
         }

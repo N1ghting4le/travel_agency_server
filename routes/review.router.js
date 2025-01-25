@@ -6,6 +6,7 @@ const express = require("express"),
     reviewController = require("../controllers/review.controller");
 
 const router = express.Router();
+
 const baseSchema = {
     id: idSchema("Review id"),
     mark: intSchema("Mark", "must be integer between 1 and 5", { min: 1, max: 5 }),
@@ -18,7 +19,9 @@ router.get(
         id: idSchema("Tour id")
     }),
     validate,
-    (req, res) => reviewController.getTourReviews(req, res));
+    (req, res) => reviewController.getTourReviews(req, res)
+);
+
 router.post(
     "/add",
     authenticateToken,
@@ -28,7 +31,9 @@ router.post(
         review_date: dateSchema("Review date"),
     }),
     validate,
-    (req, res) => reviewController.addReview(req, res));
+    (req, res) => reviewController.addReview(req, res)
+);
+
 router.patch(
     "/edit",
     authenticateToken,
@@ -37,6 +42,7 @@ router.patch(
         review_user_id: idSchema("Review user id")
     }),
     validate,
-    (req, res) => reviewController.editReview(req, res));
+    (req, res) => reviewController.editReview(req, res)
+);
 
 module.exports = router;
