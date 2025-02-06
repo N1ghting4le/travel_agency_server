@@ -2,7 +2,7 @@ const format = require("pg-format"),
     Controller = require("./base.controller");
 
 class HotelController extends Controller {
-    #createHotel(body) {
+    #createHotel = (body) => {
         const { 
             id, title, resort, address, descr, nutritionTypes,
             roomTypes, stars, images, country, notes
@@ -15,7 +15,7 @@ class HotelController extends Controller {
         ];
     }
 
-    addHotel(req, res) {
+    addHotel = (req, res) => {
         if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
         const query = format(`INSERT INTO "Hotel" VALUES (%L)`, this.#createHotel(req.body));
@@ -23,7 +23,7 @@ class HotelController extends Controller {
         this.manipulateQuery(query, res);
     }
 
-    async getHotelsByCountry(req, res) {
+    getHotelsByCountry = async (req, res) => {
         const query = format(`
             SELECT id, hotel_title FROM "Hotel" WHERE hotel_country = %L
         `, req.params.country);
@@ -37,7 +37,7 @@ class HotelController extends Controller {
         }
     }
 
-    async getHotelById(req, res) {
+    getHotelById = async (req, res) => {
         const query = format(`
             SELECT row_to_json(t) hotel FROM (SELECT * FROM "Hotel" WHERE id = %L) t
         `, req.params.id);

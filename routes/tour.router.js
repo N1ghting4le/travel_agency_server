@@ -22,7 +22,7 @@ router.post(
         "nutrition.*": stringSchema("Nutrition item")
     }),
     validate,
-    (req, res) => tourController.getToursByParams(req, res)
+    tourController.getToursByParams
 );
 
 router.get(
@@ -31,11 +31,11 @@ router.get(
         id: idSchema("Tour id")
     }),
     validate,
-    (req, res) => tourController.getTourById(req, res)
+    tourController.getTourById
 );
 
-router.post("/add", authenticateToken, (req, res) => tourController.addTour(req, res));
-router.patch("/edit/:id", authenticateToken, (req, res) => tourController.editTour(req, res));
-router.delete("/delete/:id", authenticateToken, (req, res) => tourController.deleteTour(req, res));
+router.post("/add", authenticateToken, tourController.addTour);
+router.patch("/edit/:id", authenticateToken, tourController.editTour);
+router.delete("/delete/:id", authenticateToken, tourController.deleteTour);
 
 module.exports = router;

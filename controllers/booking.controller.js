@@ -5,7 +5,7 @@ class BookingController extends Controller {
     static #unavailableTourMsg = "Данный тур больше не доступен";
     static #bookedTourMsg = "У вас есть забронированный тур на эти даты";
 
-    #createBooking(body) {
+    #createBooking = (body) => {
         const {
             id, userId, tourId, roomType, nutrType, startDate, endDate,
             bookingDate, totalPrice, adultsAmount, childrenAmount
@@ -17,7 +17,7 @@ class BookingController extends Controller {
         ];
     }
 
-    async addBooking(req, res) {
+    addBooking = async (req, res) => {
         if (this.isAdmin(req.user)) return res.sendStatus(403);
 
         const { startDate, endDate } = req.body;
@@ -50,7 +50,7 @@ class BookingController extends Controller {
         }
     }
 
-    async getUserBookings(req, res) {
+    getUserBookings = async (req, res) => {
         const deleteQuery = format(`
             DELETE FROM "Booking" WHERE user_id = %L AND start_date < CURRENT_DATE
         `, req.params.id);

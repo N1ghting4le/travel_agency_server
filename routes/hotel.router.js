@@ -14,7 +14,7 @@ router.get(
         country: stringSchema("Hotel country")
     }),
     validate,
-    (req, res) => hotelController.getHotelsByCountry(req, res)
+    hotelController.getHotelsByCountry
 );
 
 router.get(
@@ -23,9 +23,9 @@ router.get(
         id: idSchema("Hotel id")
     }),
     validate,
-    (req, res) => hotelController.getHotelById(req, res)
+    hotelController.getHotelById
 );
 
-router.post("/add", authenticateToken, upload.array("photos"), (req, res) => hotelController.addHotel(req, res));
+router.post("/add", authenticateToken, upload.array("photos"), hotelController.addHotel);
 
 module.exports = router;

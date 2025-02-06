@@ -10,30 +10,30 @@ class AuthController extends Controller {
     static #userNotExistMsg = "Пользователя с таким адресом эл. почты не существует";
     static #wrongPasswordMsg = "Неверный пароль";
 
-    #createUser(body) {
+    #createUser = (body) => {
         const { id, name, surname, email, phoneNumber, password } = body;
 
         return [id, email, password, name, surname, phoneNumber];
     }
 
-    #generateAccessToken(data) {
+    #generateAccessToken = (data) => {
         return jwt.sign(data, process.env.TOKEN_SECRET, { expiresIn: "3600s" });
     }
 
-    async #scryptHash(string, salt) {
+    #scryptHash = async (string, salt) => {
         const saltInUse = salt || crypto.randomBytes(16).toString('hex'),
             hashBuffer = await util.promisify(crypto.scrypt)(string, saltInUse, 32);
 
         return `${hashBuffer.toString('hex')}:${saltInUse}`;
     }
     
-    async #scryptVerify(testString, hashAndSalt) {
+    #scryptVerify = async (testString, hashAndSalt) => {
         const [, salt] = hashAndSalt.split(':');
 
         return await this.#scryptHash(testString, salt) === hashAndSalt; 
     }
 
-    async signUp(req, res) {
+    signUp = async (req, res) => {
         const { id, email } = req.body;
 
         if (email === process.env.ADMIN_EMAIL) {
@@ -61,7 +61,7 @@ class AuthController extends Controller {
         }
     }
 
-    async signIn(req, res) {
+    signIn = async (req, res) => {
         const { email, password } = req.body;
 
         if (email === process.env.ADMIN_EMAIL) {
@@ -97,7 +97,7 @@ class AuthController extends Controller {
         }
     }
 
-    async authorize(req, res) {
+    authorize = async (req, res) => {
         if (this.isAdmin(req.user)) return res.send({ admin: true });
 
         const query = format(`SELECT * FROM "User" WHERE email = %L`, req.user.email);

@@ -19,7 +19,7 @@ router.get(
         id: idSchema("Tour id")
     }),
     validate,
-    (req, res) => reviewController.getTourReviews(req, res)
+    reviewController.getTourReviews
 );
 
 router.post(
@@ -31,7 +31,7 @@ router.post(
         review_date: dateSchema("Review date"),
     }),
     validate,
-    (req, res) => reviewController.addReview(req, res)
+    reviewController.addReview
 );
 
 router.patch(
@@ -42,7 +42,7 @@ router.patch(
         review_user_id: idSchema("Review user id")
     }),
     validate,
-    (req, res) => reviewController.editReview(req, res)
+    reviewController.editReview
 );
 
 module.exports = router;

@@ -2,7 +2,7 @@ const format = require("pg-format"),
     Controller = require("./base.controller");
 
 class TourController extends Controller {
-    #createTour(body) {
+    #createTour = (body) => {
         const { 
             id, hotelId, basePrice, destinationCountry, departureCity, descr, title, notes
         } = body;
@@ -12,7 +12,7 @@ class TourController extends Controller {
         ];
     }
 
-    async getToursByParams(req, res) {
+    getToursByParams = async (req, res) => {
         const { departureCity, destinationCountry, rooms, nutrition } = req.body;
         
         const query = format(`
@@ -37,7 +37,7 @@ class TourController extends Controller {
         }
     }
 
-    async getTourById(req, res) {
+    getTourById = async (req, res) => {
         const query = format(`
             SELECT t.id AS id, hotel_id, departure_city, destination_country, tour_title,
             tour_descr, tour_notes, hotel_title, resort, address, hotel_descr, stars, hotel_notes, base_price,
@@ -55,7 +55,7 @@ class TourController extends Controller {
         }
     }
 
-    addTour(req, res) {
+    addTour = (req, res) => {
         if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
         const query = format(`INSERT INTO "Tour" VALUES (%L)`, this.#createTour(req.body));
@@ -63,7 +63,7 @@ class TourController extends Controller {
         this.manipulateQuery(query, res);
     }
 
-    async editTour(req, res) {
+    editTour = async (req, res) => {
         if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
         const [, ...updatedColumns] = this.#createTour(req.body), query = format(`
@@ -80,7 +80,7 @@ class TourController extends Controller {
         }
     }
 
-    async deleteTour(req, res) {
+    deleteTour = async (req, res) => {
         if (!this.isAdmin(req.user)) return res.sendStatus(403);
 
         const updateQuery = format(`UPDATE "Tour" SET delete = true WHERE id = %L`, req.params.id);

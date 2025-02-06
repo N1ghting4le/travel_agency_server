@@ -34,10 +34,10 @@ router.post(
         }
     }),
     validate,
-    (req, res) => authController.signUp(req, res)
+    authController.signUp
 );
 
-router.post("/signIn", checkSchema(baseSchema), validate, (req, res) => authController.signIn(req, res));
-router.get("/", authenticateToken, (req, res) => authController.authorize(req, res));
+router.post("/signIn", checkSchema(baseSchema), validate, authController.signIn);
+router.get("/", authenticateToken, authController.authorize);
 
 module.exports = router;

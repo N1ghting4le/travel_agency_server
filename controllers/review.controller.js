@@ -4,13 +4,13 @@ const format = require("pg-format"),
 class ReviewController extends Controller {
     static #reviewLimitMsg = "За сутки можно оставить только 1 отзыв";
 
-    #createReview(body) {
+    #createReview = (body) => {
         const { id, user_id, tour_id, review_date, mark, review_text } = body;
 
         return [id, user_id, tour_id, review_date, mark, review_text];
     }
 
-    async getTourReviews(req, res) {
+    getTourReviews = async (req, res) => {
         const query = format(`
             SELECT r.id AS id, name, surname, mark, review_text, user_id FROM "Review" r
             LEFT JOIN "User" u ON r.user_id=u.id WHERE tour_id = %L ORDER BY review_date DESC
@@ -25,7 +25,7 @@ class ReviewController extends Controller {
         }
     }
     
-    async addReview(req, res) {
+    addReview = async (req, res) => {
         if (this.isAdmin(req.user)) return res.sendStatus(403);
 
         const query = format(`
@@ -49,7 +49,7 @@ class ReviewController extends Controller {
         }
     }
 
-    editReview(req, res) {
+    editReview = (req, res) => {
         const { id, review_user_id, review_text, mark } = req.body;
 
         if (!this.isAdmin(req.user) && req.user.id !== review_user_id) return res.sendStatus(403);
